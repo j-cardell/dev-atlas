@@ -47,7 +47,9 @@ screenshots never expose the absolute home directory.
 ./build/dev_atlas serve --port 8090                 # dashboard + /api/scan.json
 ```
 
-`DEV_ATLAS_HOME` overrides the workspace root (default `$HOME/development`).
+`DEV_ATLAS_HOME` overrides the workspace root (default `$HOME/development`), and
+`DEV_ATLAS_BUCKETS` sets the bucket directory names as a comma list (default
+`active,labs,archive`) — only buckets that exist are scanned.
 
 ## Build
 

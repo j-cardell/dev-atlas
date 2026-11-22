@@ -80,6 +80,7 @@ std::string collapse_home(const std::string& path);
 std::string json_escape(const std::string& s);
 std::string human_bytes(Bytes bytes);
 std::string trim(const std::string& s);
+std::vector<std::string> csv(const std::string& s, char sep = ',');
 // Shell-free command runner: args are exec'd directly, no shell parsing,
 // so paths with spaces are safe. Returns false on fork/exec failure;
 // *rc receives the exit status when provided.

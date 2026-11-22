@@ -18,15 +18,16 @@ namespace fs = std::filesystem;
 static const char kUsage[] =
     "dev_atlas: scan | doctor | reclaim | report | serve\n"
     "  scan [--json] | doctor <repo> | reclaim [--apply] [--older-than N] (dry-run default)\n"
-    "  report [--out dir] | serve [--port 8090]   env: DEV_ATLAS_HOME (default $HOME/development)\n";
+    "  report [--out dir] | serve [--port 8090]   env: DEV_ATLAS_HOME (default $HOME/development)\n"
+    "  env: DEV_ATLAS_BUCKETS (comma list, default active,labs,archive)\n";
 static void usage() { std::fputs(kUsage, stdout); }
 static ScanResult full_scan() {
     const char* env = std::getenv("DEV_ATLAS_HOME");
     const fs::path root = env ? fs::absolute(env) : fs::path(home()) / "development";
+    const char* benv = std::getenv("DEV_ATLAS_BUCKETS");
     std::vector<fs::path> buckets;
-    for (const char* b : {"active", "labs", "archive"})
-        if (fs::is_directory(root / b))
-            buckets.push_back(root / b);
+    for (const auto& b : csv(benv ? benv : "active,labs,archive"))
+        if (fs::is_directory(root / b)) buckets.push_back(root / b);
     ScanResult r = scan(buckets);
     audit_all(r);
     return r;

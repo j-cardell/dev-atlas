@@ -150,6 +150,12 @@ static void test_human_bytes() {
     check(human_bytes(1073741824LL) == "1.0 GiB", "human 1 GiB");
 }
 
+static void test_csv() {
+    auto v = csv("a, b ,,c");
+    check(v.size() == 3 && v[0] == "a" && v[1] == "b" && v[2] == "c", "csv trims, drops empty");
+    check(csv("").empty() && csv("solo").size() == 1, "csv edge cases");
+}
+
 static void test_count_lines(const fs::path& ws) {
     auto p = ws / "cl_test.txt";
     wf(p, "a\nb\n");
@@ -336,6 +342,7 @@ int main() {
     test_collapse();
     test_json_escape();
     test_human_bytes();
+    test_csv();
     test_count_lines(ws);
     test_dir_size(ws);
     test_days_since(ws);

@@ -84,6 +84,19 @@ std::string trim(const std::string& s) {
     return s.substr(b, e - b);
 }
 
+std::vector<std::string> csv(const std::string& s, char sep) {
+    std::vector<std::string> out;
+    size_t i = 0;
+    while (i <= s.size()) {
+        size_t c = s.find(sep, i);
+        std::string part = trim(c == std::string::npos ? s.substr(i) : s.substr(i, c - i));
+        if (!part.empty()) out.push_back(part);
+        if (c == std::string::npos) break;
+        i = c + 1;
+    }
+    return out;
+}
+
 static bool exec_with_pipe(const std::vector<std::string>& args, std::string& out, int* rc,
                            const std::filesystem::path* cwd) {
     out.clear();
