@@ -8,6 +8,7 @@
 #include <sstream>
 #include <string>
 #include <sys/socket.h>
+#include <arpa/inet.h>
 #include <thread>
 #include <unistd.h>
 #include <netinet/in.h>
@@ -89,7 +90,8 @@ void handle_conn(int fd, const std::filesystem::path& html, const std::filesyste
 
 }  // namespace
 
-int serve(const std::filesystem::path& html_path, const std::filesystem::path& json_path, int port) {
+int serve(const std::filesystem::path& html_path, const std::filesystem::path& json_path, int port,
+          const std::string& host) {
     struct sigaction sa{};
     sa.sa_handler = on_signal;
     sigemptyset(&sa.sa_mask);
@@ -103,7 +105,7 @@ int serve(const std::filesystem::path& html_path, const std::filesystem::path& j
     struct sockaddr_in addr{};
     addr.sin_family = AF_INET;
     addr.sin_port = htons(static_cast<uint16_t>(port));
-    addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    addr.sin_addr.s_addr = ::inet_addr(host.c_str());
     if (::bind(fd, reinterpret_cast<struct sockaddr*>(&addr), sizeof addr) < 0) {
         ::close(fd);
         return -1;

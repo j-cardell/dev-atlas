@@ -74,10 +74,12 @@ static int cmd_serve(const std::vector<std::string>& args) {
     int port = 8090;
     if (const int i = flag_index(args, "--port"); i >= 0)
         port = std::stoi(args[i + 1]);
+    const char* henv = std::getenv("DEV_ATLAS_HOST");
+    const std::string host = henv ? henv : "127.0.0.1";
     const fs::path out = "out";
     write_report(full_scan(), out);
-    std::printf("serving http://127.0.0.1:%d (Ctrl-C to stop)\n", port);
-    return serve(out / "latest.html", out / "scan.json", port);
+    std::printf("serving http://%s:%d (Ctrl-C to stop)\n", host.c_str(), port);
+    return serve(out / "latest.html", out / "scan.json", port, host);
 }
 struct Cmd { const char* name; int (*fn)(const std::vector<std::string>&); };
 static const Cmd kCmds[] = {{"scan", cmd_scan}, {"doctor", cmd_doctor}, {"reclaim", cmd_reclaim},

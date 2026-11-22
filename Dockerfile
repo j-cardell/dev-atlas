@@ -12,8 +12,9 @@ RUN cmake -B build -DCMAKE_BUILD_TYPE=Release \
 
 # Runtime stage: only the compiled binary and the dashboard template.
 FROM debian:bookworm-slim
+ENV DEV_ATLAS_HOST=0.0.0.0
 COPY templates/ /opt/dev-atlas/templates/
 COPY --from=build /src/build/dev_atlas /usr/local/bin/dev_atlas
-WORKDIR /workspace
+WORKDIR /app
 ENTRYPOINT ["dev_atlas"]
 CMD ["serve", "--port", "8090"]

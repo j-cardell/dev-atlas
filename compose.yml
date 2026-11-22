@@ -3,7 +3,7 @@ services:
     build: .
     image: dev-atlas:local
     ports:
-      - "${DEV_ATLAS_PORT:-8090}:8090"
+      - "127.0.0.1:${DEV_ATLAS_PORT:-8090}:8090"
     environment:
       - DEV_ATLAS_HOME=/workspace
     volumes:

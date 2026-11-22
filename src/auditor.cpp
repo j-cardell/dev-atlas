@@ -62,9 +62,7 @@ static std::string find_in_path(const std::string& exe) {
     std::stringstream ss(pe);
     std::string entry;
     while (std::getline(ss, entry, ':')) {
-        if (entry.empty())
-            entry = ".";
-        const fs::path p = fs::path(entry) / exe;
+        const fs::path p = (entry.empty() ? fs::path(".") : fs::path(entry)) / exe;
         std::error_code ec;
         if (fs::is_regular_file(p, ec) && access(p.c_str(), X_OK) == 0)
             return p.string();

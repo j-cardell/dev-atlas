@@ -17,6 +17,7 @@
 #include "dev_atlas/renderer.hpp"
 #include "dev_atlas/scanner.hpp"
 #include "dev_atlas/server.hpp"
+#include "json_lint.hpp"
 
 namespace fs = std::filesystem;
 using namespace dev_atlas;
@@ -259,14 +260,15 @@ static void test_render_json(const fs::path& ws) {
     check(j.find("\"repos\"") != std::string::npos, "json has repos");
     check(j.find("~") != std::string::npos, "json has ~");
     check(j.find(std::string(home())) == std::string::npos, "json no absolute home");
+    check(json_lint(j), "json structurally valid");
 }
 
 static void test_render_table(const fs::path& ws) {
     auto roots = {ws / "active", ws / "labs", ws / "archive"};
     auto result = scan(roots);
     auto t = render_table(result);
-    check(t.find("proj-warm") != std::string::npos, "table has proj-warm");
-    check(t.find(std::string(home())) == std::string::npos, "table no absolute home");
+    check(t.find("proj-warm") != std::string::npos &&
+          t.find(std::string(home())) == std::string::npos, "table: repo present, no absolute home");
 }
 
 static void test_render_html(const fs::path& ws) {
@@ -320,7 +322,7 @@ static void test_server(const fs::path& ws) {
     auto json = ws / "srv.json";
     wf(html, "<html>DT</html>\n");
     wf(json, "{\"repos\":[]}\n");
-    std::thread(serve, html, json, port).detach();
+    std::thread(serve, html, json, port, "127.0.0.1").detach();
     std::this_thread::sleep_for(std::chrono::milliseconds(300));
     auto r1 = http_get(port, "/");
     check(r1.find("DT") != std::string::npos, "server / has DT");

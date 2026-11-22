@@ -25,8 +25,11 @@ std::string collapse_home(const std::string& path) {
     if (path == h)
         return "~";
     if (path.size() > h.size() + 1 && std::equal(h.begin(), h.end(), path.begin()) &&
-        path[h.size()] == '/')
-        return "~" + path.substr(h.size());
+        path[h.size()] == '/') {
+        std::string out = "~";
+        out.append(path, h.size(), std::string::npos);
+        return out;
+    }
     return path;
 }
 

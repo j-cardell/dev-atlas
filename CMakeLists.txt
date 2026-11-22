@@ -5,7 +5,8 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_compile_options(-Wall -Wextra -Wpedantic -Werror)
+add_compile_options(-Wall -Wextra -Wpedantic -Werror -Wno-restrict)
+# -Wno-restrict: GCC 12 -O3 false positive on inlined char_traits::copy.
 
 find_package(Threads REQUIRED)
 

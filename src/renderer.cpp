@@ -2,6 +2,7 @@
 #include "dev_atlas/renderer.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cstdio>
 #include <fstream>
 #include <sstream>
@@ -12,7 +13,7 @@ namespace dev_atlas {
 namespace {
 
 void append_git(std::string& s, const GitInfo& g) {
-    s += "\"git\":{\"branch\":\"" + json_escape(g.branch) + "\""
+    s += ",\"git\":{\"branch\":\"" + json_escape(g.branch) + "\""
          + ",\"dirty\":" + std::to_string(g.dirty)
          + ",\"untracked\":" + std::to_string(g.untracked)
          + ",\"ahead\":" + std::to_string(g.ahead)
@@ -22,7 +23,7 @@ void append_git(std::string& s, const GitInfo& g) {
 }
 
 void append_bloat(std::string& s, const std::vector<BloatEntry>& v) {
-    s += "\"bloat\":[";
+    s += ",\"bloat\":[";
     for (size_t i = 0; i < v.size(); ++i) {
         if (i) s += ",";
         s += "{\"path\":\"" + json_escape(v[i].display) + "\",\"bytes\":"
@@ -33,18 +34,18 @@ void append_bloat(std::string& s, const std::vector<BloatEntry>& v) {
 }
 
 void append_checks(std::string& s, const std::vector<HealthCheck>& v) {
-    s += "\"checks\":[";
+    s += ",\"checks\":[";
     for (size_t i = 0; i < v.size(); ++i) {
         if (i) s += ",";
         s += "{\"name\":\"" + json_escape(v[i].name) + "\""
              + ",\"pass\":" + std::string(v[i].pass ? "true" : "false")
-             + ",\"detail\":\"" + json_escape(v[i].detail) + "}";
+             + ",\"detail\":\"" + json_escape(v[i].detail) + "\"}";
     }
     s += "]";
 }
 
 void append_containers(std::string& s, const std::vector<ContainerRef>& v) {
-    s += "\"containers\":[";
+    s += ",\"containers\":[";
     for (size_t i = 0; i < v.size(); ++i) {
         if (i) s += ",";
         s += "{\"name\":\"" + json_escape(v[i].name) + "\""
@@ -55,7 +56,7 @@ void append_containers(std::string& s, const std::vector<ContainerRef>& v) {
 }
 
 void append_str_arr(std::string& s, const char* key, const std::vector<std::string>& v) {
-    s += "\"" + std::string(key) + "\":";
+    s += ",\"" + std::string(key) + "\":";
     s += "[";
     for (size_t i = 0; i < v.size(); ++i) {
         if (i) s += ",";
@@ -65,7 +66,7 @@ void append_str_arr(std::string& s, const char* key, const std::vector<std::stri
 }
 
 void append_int_arr(std::string& s, const char* key, const std::vector<int>& v) {
-    s += "\"" + std::string(key) + "\":";
+    s += ",\"" + std::string(key) + "\":";
     s += "[";
     for (size_t i = 0; i < v.size(); ++i) {
         if (i) s += ",";
