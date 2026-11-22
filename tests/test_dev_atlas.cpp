@@ -113,7 +113,8 @@ static fs::path build_fixture() {
     auto hard = l / "proj-hard";
     git_init(hard);
     wf(hard / "README.md", "# hard\n");
-    wf(hard / "src/conf.py", "path = \"/home/jon/secret\"\n");
+    wf(hard / "src/conf.py",
+       "path = \"/home/" + fs::path(home()).filename().string() + "/secret\"\n");
     git_commit(hard, "init");
 
     auto leak = l / "proj-leak";
