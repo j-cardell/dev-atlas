@@ -121,6 +121,27 @@ struct SizeAccum {
     bool have = false;
 };
 
+// Newest file mtime within a dir. The dir's own mtime changes on every entry
+// add/remove, so it says nothing about content age.
+std::optional<fs::file_time_type> newest_mtime_in(const fs::path& dir) {
+    std::optional<fs::file_time_type> newest;
+    std::error_code ec;
+    for (auto it = fs::recursive_directory_iterator(
+             dir, fs::directory_options::skip_permission_denied, ec);
+         it != fs::recursive_directory_iterator(); ++it) {
+        if (ec)
+            break;
+        if (!it->is_regular_file(ec))
+            continue;
+        auto mt = it->last_write_time(ec);
+        if (ec)
+            continue;
+        if (!newest || mt < *newest)
+            newest = mt;
+    }
+    return newest;
+}
+
 void walk_size(const fs::path& dir, SizeAccum& acc) {
     std::error_code ec;
     for (const auto& e :
@@ -129,8 +150,8 @@ void walk_size(const fs::path& dir, SizeAccum& acc) {
         const fs::path p = e.path();
         const std::string name = p.filename().string();
         if (e.is_directory(ec2)) {
-            if (has_git(p))
-                continue;  // nested repo: not double-counted here
+            if (name == ".git" || has_git(p))
+                continue;  // VCS metadata / nested repo: not counted here
             if (is_bloat(name)) {
                 const Bytes sz = dir_size_bytes(p);
                 acc.total += sz;
@@ -139,7 +160,7 @@ void walk_size(const fs::path& dir, SizeAccum& acc) {
                 be.path = p.string();
                 be.display = collapse_home(p.string());
                 be.bytes = sz;
-                if (auto mt = file_mtime(p))
+                if (auto mt = newest_mtime_in(p))
                     be.dormant_days = days_since(*mt);
                 acc.entries.push_back(std::move(be));
                 continue;
@@ -226,7 +247,7 @@ void fill_sizes(Repo& repo) {
     const long long mtime_days = acc.have ? acc.newest : 0;
     long long act = std::max(0LL, mtime_days);
     if (repo.git.last_commit_days >= 0)
-        act = std::max(act, repo.git.last_commit_days);
+        act = std::min(act, repo.git.last_commit_days);
     repo.last_activity_days = act;
 }
 

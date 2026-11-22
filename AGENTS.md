@@ -13,5 +13,5 @@
 
 - Secret scan: `command -v gitleaks >/dev/null && gitleaks dir . --no-banner --redact || true`
 - Hardcoded-path gate: `! grep -rnE '(/home/[A-Za-z0-9._-]+/|/Users/[A-Za-z0-9._-]+/|/mnt/[A-Za-z0-9._-]+/|/media/[A-Za-z0-9._-]+/|/run/media/[A-Za-z0-9._-]+/)' . --exclude-dir=.git --exclude-dir=tests --exclude-dir=docs --exclude-dir=out --exclude-dir=.venv --exclude-dir=venv --exclude-dir=node_modules --exclude-dir=build --exclude-dir=__pycache__ --exclude-dir=.ruff_cache --exclude-dir=.pytest_cache --exclude='*.md' --exclude='.env.example' --exclude='compose.override*' 2>/dev/null`
-- File line gate (any language): `find src include scripts lib -type f 2>/dev/null | while IFS= read -r f; do n=$(wc -l < "$f"); [ "$n" -gt 350 ] && echo "$f: $n lines" && exit 1; done; true`
+- File line gate (any language): `find src include tests scripts lib -type f 2>/dev/null | while IFS= read -r f; do n=$(wc -l < "$f"); [ "$n" -gt 350 ] && echo "$f: $n lines" && exit 1; done; true`
 - Stack lint/test: `cmake -B build && cmake --build build && ctest --test-dir build --output-on-failure && clang-tidy -p build src/*.cpp`

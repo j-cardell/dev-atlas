@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Secret scan (gitleaks)
+        # tests/ holds a fake AWS key as gitleaks test bait
+        run: gitleaks detect --no-banner --redact --exclude-paths tests/
+      - name: Reject hardcoded machine/user paths
+        run: |
+          if grep -rnE '(/home/[A-Za-z0-9._-]+/|/Users/[A-Za-z0-9._-]+/|/mnt/[A-Za-z0-9._-]+|/media/[A-Za-z0-9._-]+|/run/media/[A-Za-z0-9._-]+/)' . \
+            --exclude-dir=.git --exclude-dir=.github --exclude-dir=tests --exclude-dir=docs \
+            --exclude-dir=node_modules --exclude-dir=.venv --exclude-dir=venv --exclude-dir=build --exclude-dir=out \
+            --exclude-dir=__pycache__ --exclude-dir=.ruff_cache --exclude-dir=.pytest_cache \
+            --exclude='*.md' --exclude='.env.example' --exclude='compose.override*' --exclude='docker-compose.override*'; then
+            echo "Found hardcoded machine/user paths in project files."
+            exit 1
+          fi
+      - name: Source line limit (<= 350 lines)
+        run: |
+          bad=0
+          while IFS= read -r -d '' f; do
+            n=$(wc -l < "$f")
+            if [ "$n" -gt 350 ]; then
+              echo "$f: $n lines (>350)"
+              bad=1
+            fi
+          done < <(find src include tests scripts lib -type f -print0 2>/dev/null || true)
+          exit "$bad"
+      - name: Build & check
+        run: |
+          sudo apt-get update && sudo apt-get install -y cmake ninja-build clang-tidy
+          cmake -B build -G Ninja && cmake --build build
+          ctest --test-dir build --output-on-failure
+          sed -i 's/ -Wno-restrict//g' build/compile_commands.json
+          clang-tidy -p build src/*.cpp

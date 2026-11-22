@@ -1,6 +1,8 @@
 // Health scoring, live-process mapping, and lifecycle advice.
 #include "dev_atlas/auditor.hpp"
 
+#include "dev_atlas/scanner.hpp"
+
 #include <algorithm>
 #include <cctype>
 #include <fstream>
@@ -12,18 +14,12 @@ namespace dev_atlas {
 namespace fs = std::filesystem;
 
 // Rebuildable bloat / VCS dirs to skip when walking source trees.
-static bool is_bloat_name(const std::string& n) {
-    static const char* names[] = {".git", ".worktrees", ".venv", "node_modules",
-                                   "build", "target", "out", ".ruff_cache",
-                                   ".pytest_cache"};
-    for (const char* x : names)
-        if (n == x)
-            return true;
-    return n.rfind("venv", 0) == 0;
+static bool should_skip_dir(const std::string& n) {
+    return is_bloat_name(n) || n == ".git" || n == ".worktrees";
 }
 static bool path_has_bloat(const fs::path& p) {
     for (const auto& c : p)
-        if (is_bloat_name(c.string()))
+        if (should_skip_dir(c.string()))
             return true;
     return false;
 }
@@ -151,13 +147,19 @@ static void scan_hardcoded(const fs::path& dir, int depth, const std::string& pa
         const fs::path p = it->path();
         const std::string name = p.filename().string();
         if (it->is_directory(ec)) {
-            if (is_bloat_name(name))
+            if (should_skip_dir(name) || name == "docs" || name == "tests")
                 continue;
             scan_hardcoded(p, depth + 1, pat, found);
             if (found.size() >= 5)
                 return;
         } else if (it->is_regular_file(ec)) {
             if (it->file_size(ec) > 2048LL * 1024 || is_binary(p))
+                continue;
+            // Doc examples and local overrides may legitimately show host paths.
+            if (name.size() > 3 && name.ends_with(".md"))
+                continue;
+            if (name == ".env.example" || name.starts_with("compose.override") ||
+                name.starts_with("docker-compose.override"))
                 continue;
             if (file_contains(p, pat))
                 found.push_back(collapse_home(p.string()));
