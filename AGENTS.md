@@ -6,8 +6,8 @@
 - Keep the entrypoint thin (config + wiring only); separate domain logic, I/O, and UI/templates into distinct modules.
 - Use relative paths (`__file__` / `BASH_SOURCE[0]`) for intra-repo files; use env vars + `.env.example` only for external paths or secrets.
 - Put rendered outputs, screenshots, and temp files in `out/` (gitignored).
-- When parallel agents work on this repo at the same time (`HERDR_ENV=1`, subagent, or another task has uncommitted edits), automatically isolate work in `/tmp/wt-dev-atlas-<task>` (`git worktree add /tmp/wt-dev-atlas-<task> -b <branch>`) and run `git worktree remove` after merging.
-- Before any subagent finishes (and again after merging), run a 3-step cleanup pass: (1) verify correctness with real test/CLI runs, (2) delete dead code, unused scaffold placeholders (`core.py`, `test_smoke.py`), and duplicate helpers across modules, and (3) strip restatement comments, silent `except: pass` blocks, and AI prose tells (never put meta-prompt terms like "anti-slop" in code, docs, or commit messages).
+- When working on this repo in parallel (multiple editors or CLIs, or another session has uncommitted edits), isolate work in a worktree (`git worktree add /tmp/wt-dev-atlas-<task> -b <branch>`) and run `git worktree remove` after merging.
+- Before considering work done (and again after merging), run a 3-step cleanup pass: (1) verify correctness with real test/CLI runs, (2) delete dead code, unused scaffold placeholders, and duplicate helpers across modules, and (3) remove comments that restate the code, silent exception handlers, and filler prose.
 
 ## Verification
 
