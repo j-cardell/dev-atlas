@@ -89,7 +89,14 @@ std::string json_repo(const Repo& r) {
          + ",\"health_score\":" + std::to_string(r.health_score);
     append_checks(s, r.checks);
     s += ",\"top_files\":";
-    s += "[]";
+    s += "[";
+    for (size_t i = 0; i < r.top_files.size(); ++i) {
+        if (i)
+            s += ",";
+        s += "{\"path\":\"" + json_escape(r.top_files[i].display) +
+             "\",\"lines\":" + std::to_string(r.top_files[i].lines) + "}";
+    }
+    s += "]";
     append_str_arr(s, "hardcoded_paths", r.hardcoded_paths);
     s += ",\"gitleaks\":\"" + json_escape(r.gitleaks) + "\""
          + ",\"lifecycle\":\"" + json_escape(r.lifecycle) + "\"";
@@ -179,7 +186,14 @@ std::string render_doctor(const Repo& repo) {
     for (const auto& c : repo.checks)
         s += "  " + std::string(c.pass ? "PASS " : "FAIL ") + c.name + ": " + c.detail + "\n";
     if (!repo.checks.empty()) s += "\n";
-    s += "TOP FILES\n  (not available)\n\n";
+    s += "TOP FILES\n";
+    if (repo.top_files.empty()) {
+        s += "  (none)\n";
+    } else {
+        for (const auto& f : repo.top_files)
+            s += "  " + f.display + "  " + std::to_string(f.lines) + " lines\n";
+    }
+    s += "\n";
     s += "HARDCODED PATHS\n";
     if (repo.hardcoded_paths.empty()) {
         s += "  (none)\n";

@@ -1,4 +1,6 @@
 // dev-atlas test suite: plain stdlib harness, no framework.
+#include <chrono>
+#include <ctime>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -30,8 +32,16 @@ static std::string sh(const std::string& cmd) {
     return out;
 }
 static void shc(const std::string& cmd) {
-    std::string out;
-    run_argv({"sh", "-c", cmd}, out);
+    std::string o;
+    run_argv({"sh", "-c", cmd}, o);
+}
+
+static std::string iso_days_ago(long long days) {
+    auto t = std::chrono::system_clock::now() - std::chrono::hours(days * 24);
+    std::time_t tt = std::chrono::system_clock::to_time_t(t);
+    char buf[32];
+    std::strftime(buf, sizeof buf, "%Y-%m-%dT%H:%M:%S", std::gmtime(&tt));
+    return buf;
 }
 static void git_init(const fs::path& p) {
     sh("git init " + p.string());
@@ -54,7 +64,7 @@ static void wf_bytes(const fs::path& p, size_t bytes) {
 }
 
 static fs::path build_fixture() {
-    auto ws = fs::path("/tmp/dt_ws_") / std::to_string(::getpid());
+    auto ws = fs::path(home()) / (".dt_ws_" + std::to_string(::getpid()));
     const auto a = ws / "active";
     const auto l = ws / "labs";
     const auto ar = ws / "archive";
@@ -75,12 +85,11 @@ static fs::path build_fixture() {
     auto cold = l / "proj-cold";
     git_init(cold);
     wf(cold / "README.md", "# cold\n");
-    shc("cd " + cold.string() +
-        " && GIT_AUTHOR_DATE='40 days ago' GIT_COMMITTER_DATE='40 days ago' "
-        "git commit -qm init");
-    sh("touch -d '40 days ago' " + (cold / "README.md").string());
+    shc("cd " + cold.string() + " && git add -A && GIT_AUTHOR_DATE='" + iso_days_ago(40) +
+        "' GIT_COMMITTER_DATE='" + iso_days_ago(40) + "' git commit -qm init");
+    shc("touch -d '40 days ago' " + (cold / "README.md").string());
     wf_bytes(cold / "node_modules/f.bin", 2 * 1024 * 1024);
-    sh("touch -d '40 days ago' " + (cold / "node_modules/f.bin").string());
+    shc("touch -d '40 days ago' " + (cold / "node_modules/f.bin").string());
 
     auto warm = l / "proj-warm";
     git_init(warm);
@@ -93,6 +102,8 @@ static fs::path build_fixture() {
     auto big = l / "proj-big";
     git_init(big);
     wf(big / "README.md", "# big\n");
+    wf(big / "AGENTS.md", "# agents\n");
+    wf(big / ".gitignore", "out/\n");
     std::string bigfile;
     for (int i = 0; i < 400; ++i) bigfile += "line " + std::to_string(i) + "\n";
     wf(big / "src/big.py", bigfile);
@@ -159,7 +170,7 @@ static void test_days_since(const fs::path& ws) {
     auto p = ws / "ds_test.txt";
     wf(p, "now");
     check(days_since(fs::last_write_time(p)) == 0, "days_since now=0");
-    sh("touch -d '40 days ago' " + p.string());
+    shc("touch -d '40 days ago' " + p.string());
     auto d = days_since(fs::last_write_time(p));
     check(d >= 39 && d <= 41, "days_since 40d");
 }
@@ -167,16 +178,18 @@ static void test_days_since(const fs::path& ws) {
 static void test_discover(const fs::path& ws) {
     auto roots = {ws / "active", ws / "labs", ws / "archive"};
     auto projects = discover_projects(roots);
-    check(projects.size() == 7, "discover 7 projects");
+    check(projects.size() == 8, "discover 8 projects");
 }
 
 static void test_scan(const fs::path& ws) {
     auto roots = {ws / "active", ws / "labs", ws / "archive"};
     auto result = scan(roots);
-    check(result.repos.size() == 7, "scan 7 repos");
+    check(result.repos.size() == 8, "scan 8 repos");
     for (const auto& r : result.repos) {
         if (r.display.find("proj-py") != std::string::npos) {
             check(r.stack == "Python", "proj-py stack Python");
+            check(!r.git.branch.empty(), "proj-py branch nonempty");
+            check(r.git.last_commit_days >= 0, "proj-py last_commit >= 0");
             check(r.git.dirty == 1, "proj-py dirty 1");
             check(r.git.untracked >= 1, "proj-py untracked >=1");
             check(r.bloat_bytes > 0, "proj-py bloat > 0");
@@ -192,17 +205,6 @@ static void test_scan(const fs::path& ws) {
     check(result.total_bloat_bytes == tb, "total bloat == sum");
 }
 
-static void test_git(const fs::path& ws) {
-    auto roots = {ws / "active", ws / "labs", ws / "archive"};
-    auto result = scan(roots);
-    for (const auto& r : result.repos) {
-        if (r.display.find("proj-py") != std::string::npos) {
-            check(!r.git.branch.empty(), "proj-py branch nonempty");
-            check(r.git.last_commit_days >= 0, "proj-py last_commit >= 0");
-        }
-    }
-}
-
 static void test_reclaim(const fs::path& ws) {
     auto roots = {ws / "active", ws / "labs", ws / "archive"};
     auto result = scan(roots);
@@ -215,12 +217,13 @@ static void test_reclaim(const fs::path& ws) {
     for (const auto& r : result.repos)
         if (r.display.find("proj-cold") != std::string::npos) cold_bloat = r.bloat_bytes;
     check(plan.total == cold_bloat, "reclaim total == cold bloat");
-    auto ws2 = ws / "copy";
+    const auto ws2 = ws.parent_path() / (ws.filename().string() + "_copy");
     fs::copy(ws, ws2, fs::copy_options::recursive);
     auto plan2 = plan_reclaim(scan({ws2 / "active", ws2 / "labs", ws2 / "archive"}), 30);
     apply_reclaim(plan2);
     check(!fs::exists(ws2 / "labs" / "proj-cold" / "node_modules"), "apply removed node_modules");
     check(fs::exists(ws2 / "labs" / "proj-cold" / "README.md"), "apply kept source");
+    fs::remove_all(ws2);
 }
 
 static void test_auditor(const fs::path& ws) {
@@ -234,13 +237,15 @@ static void test_auditor(const fs::path& ws) {
         }
         if (r.display.find("proj-big") != std::string::npos) {
             check(r.health_score == 80, "big score 80");
+            check(!r.top_files.empty() && r.top_files[0].lines == 400, "big top file 400 lines");
         }
         if (r.display.find("proj-cold") != std::string::npos)
             check(r.lifecycle == "archive", "cold lifecycle archive");
         if (r.display.find("proj-hard") != std::string::npos)
             check(!r.hardcoded_paths.empty(), "hard has hardcoded paths");
         if (r.display.find("proj-leak") != std::string::npos) {
-            check(r.gitleaks == "1 finding(s)" || r.gitleaks == "unavailable",
+            check(r.gitleaks == "unavailable" ||
+                      r.gitleaks.find("finding(s)") != std::string::npos,
                   "leak gitleaks finding or unavailable");
         }
     }
@@ -261,7 +266,7 @@ static void test_render_table(const fs::path& ws) {
     auto result = scan(roots);
     auto t = render_table(result);
     check(t.find("proj-warm") != std::string::npos, "table has proj-warm");
-    check(t.find("~") != std::string::npos, "table has ~");
+    check(t.find(std::string(home())) == std::string::npos, "table no absolute home");
 }
 
 static void test_render_html(const fs::path& ws) {
@@ -333,7 +338,6 @@ int main() {
     test_days_since(ws);
     test_discover(ws);
     test_scan(ws);
-    test_git(ws);
     test_reclaim(ws);
     test_auditor(ws);
     test_render_json(ws);

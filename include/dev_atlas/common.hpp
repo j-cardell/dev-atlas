@@ -59,6 +59,7 @@ struct Repo {
     long long last_activity_days = 0;
     int health_score = 0;
     std::vector<HealthCheck> checks;
+    std::vector<TopFile> top_files;  // 3 largest source files by line count
     std::vector<std::string> hardcoded_paths;  // up to 5 display paths
     std::string gitleaks;   // "clean" | "N finding(s)" | "unavailable" | "error"
     std::string lifecycle;  // "" | "promote" | "archive"

@@ -91,7 +91,7 @@ static HealthCheck doc_check(const Repo& r, const char* fname, const char* label
     c.detail = c.pass ? "present" : "missing";
     return c;
 }
-static HealthCheck check_ceiling(Repo& r) {
+static std::vector<TopFile> collect_top_files(const Repo& r) {
     static const char* dirs[] = {"src", "include", "scripts", "lib"};
     std::vector<TopFile> files;
     for (const char* d : dirs) {
@@ -116,6 +116,14 @@ static HealthCheck check_ceiling(Repo& r) {
     }
     std::sort(files.begin(), files.end(),
               [](const TopFile& a, const TopFile& b) { return a.lines > b.lines; });
+    return files;
+}
+static HealthCheck check_ceiling(Repo& r) {
+    const std::vector<TopFile> files = collect_top_files(r);
+    const size_t n = std::min<size_t>(3, files.size());
+    r.top_files.clear();
+    for (size_t i = 0; i < n; ++i)
+        r.top_files.push_back(files[i]);
     bool over = false;
     for (const auto& f : files)
         if (f.lines > 350) {
@@ -129,7 +137,7 @@ static HealthCheck check_ceiling(Repo& r) {
         c.detail = "no source files";
     } else {
         std::string d = "top: ";
-        for (size_t i = 0; i < files.size() && i < 3; ++i)
+        for (size_t i = 0; i < n; ++i)
             d += (i ? ", " : "") + files[i].display + " " + std::to_string(files[i].lines);
         c.detail = d;
     }
@@ -198,8 +206,7 @@ static HealthCheck check_gitleaks(Repo& r) {
         c.pass = false;
         c.detail = r.gitleaks;
     }
-    std::error_code ec;
-    fs::remove(tmp, ec);
+    fs::remove(tmp);
     return c;
 }
 static HealthCheck check_dirty(const Repo& r) {
@@ -255,14 +262,10 @@ void audit_repo(Repo& repo) {
         if (repo.last_activity_days > 30) {
             repo.lifecycle = "archive";
         } else {
-            bool all = true;
             for (const auto& c : repo.checks)
-                if (!c.pass) {
-                    all = false;
-                    break;
-                }
-            if (all)
-                repo.lifecycle = "promote";
+                if (!c.pass)
+                    return;
+            repo.lifecycle = "promote";
         }
     }
 }
