@@ -1,0 +1,9 @@
+# Podman-only options. Copy to compose.override.yml for local podman use:
+#
+#   cp compose.override.yml.example compose.override.yml
+#
+# Never commit compose.override.yml (it is gitignored). The committed
+# compose.yml stays plain Docker-compatible.
+services:
+  dev-atlas:
+    userns_mode: "keep-id"
