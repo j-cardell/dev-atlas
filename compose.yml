@@ -6,6 +6,7 @@ services:
       - "127.0.0.1:${DEV_ATLAS_PORT:-8090}:8090"
     environment:
       - DEV_ATLAS_HOME=/workspace
+      - DEV_ATLAS_BUCKETS=${DEV_ATLAS_BUCKETS:-active,labs,archive}
     volumes:
       - ${DEV_ATLAS_HOST_HOME:-$HOME/development}:/workspace:ro
     restart: unless-stopped

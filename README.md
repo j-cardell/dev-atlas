@@ -1,7 +1,8 @@
 # dev-atlas
 
 `dev-atlas` is a C++20 command center for a local development workspace. It scans
-`~/development` (`active/`, `labs/`, `archive/`, including nested project groups),
+`~/development` (bucket dirs `active/`, `labs/`, `archive/` by default — rename
+them with `DEV_ATLAS_BUCKETS` — including nested project groups),
 reports per-repo git sync state, engineering health, and disk bloat, and serves a
 dark-mode dashboard on `127.0.0.1:8090`.
 
@@ -49,7 +50,14 @@ screenshots never expose the absolute home directory.
 
 `DEV_ATLAS_HOME` overrides the workspace root (default `$HOME/development`), and
 `DEV_ATLAS_BUCKETS` sets the bucket directory names as a comma list (default
-`active,labs,archive`) — only buckets that exist are scanned.
+`active,labs,archive`) — only buckets that exist are scanned. Example for a
+workspace organized differently:
+
+```bash
+DEV_ATLAS_HOME=~/code DEV_ATLAS_BUCKETS="projects,experiments" ./build/dev_atlas scan
+```
+
+Custom bucket names inside the container: set `DEV_ATLAS_BUCKETS` in `.env`.
 
 ## Build
 
