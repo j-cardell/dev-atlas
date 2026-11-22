@@ -17,8 +17,9 @@ jobs:
         with:
           fetch-depth: 0
       - name: Secret scan (gitleaks)
-        # tests/ holds a fake AWS key as gitleaks test bait
-        run: gitleaks detect --no-banner --redact --exclude-paths tests/
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Reject hardcoded machine/user paths
         run: |
           if grep -rnE '(/home/[A-Za-z0-9._-]+/|/Users/[A-Za-z0-9._-]+/|/mnt/[A-Za-z0-9._-]+|/media/[A-Za-z0-9._-]+|/run/media/[A-Za-z0-9._-]+/)' . \

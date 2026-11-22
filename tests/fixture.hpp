@@ -65,6 +65,8 @@ inline fxfs::path build_fixture() {
     wf(py / "src/a.py", "print('hi')\nprint('more')\n");
     wf(py / "src/b.py", "print('b')\n");
     wf_bytes(py / "node_modules/f.bin", 5 * 1024 * 1024);
+    wf_bytes(py / "node_modules/old.bin", 1024);
+    shc("touch -d '40 days ago' " + (py / "node_modules/old.bin").string());
 
     auto node = a / "group" / "proj-node";
     git_init(node);
@@ -112,7 +114,8 @@ inline fxfs::path build_fixture() {
     wf(leak / "README.md", "# leak\n");
     const char* key = "AKIA"
                       "Q7X9M2P4W8N3R6T1";
-    const char* sec = "wJ9rK2mX5pL8nQ1vB4tY7zA3dF6hC0sG9wE2uI5o";
+    const char* sec = "wJ9rK2mX5pL8nQ1vB4tY"
+                      "7zA3dF6hC0sG9wE2uI5o";
     wf(leak / "src/creds.py", std::string("key = \"") + key + "\"\nsecret = \"" + sec + "\"\n");
     git_commit(leak, "init");
 

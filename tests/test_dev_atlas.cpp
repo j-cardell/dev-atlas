@@ -95,6 +95,8 @@ static void test_scan(const fs::path& ws) {
             check(r.git.dirty == 1, "proj-py dirty 1");
             check(r.git.untracked >= 1, "proj-py untracked >=1");
             check(r.bloat_bytes > 0, "proj-py bloat > 0");
+            check(!r.bloat.empty() && r.bloat[0].dormant_days == 0,
+                  "proj-py bloat age = newest file (0d), not oldest");
         }
         if (r.display.find("proj-node") != std::string::npos)
             check(r.stack == "Node", "proj-node stack Node");

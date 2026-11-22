@@ -136,7 +136,7 @@ std::optional<fs::file_time_type> newest_mtime_in(const fs::path& dir) {
         auto mt = it->last_write_time(ec);
         if (ec)
             continue;
-        if (!newest || mt < *newest)
+        if (!newest || mt > *newest)
             newest = mt;
     }
     return newest;

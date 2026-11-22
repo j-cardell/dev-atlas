@@ -1,5 +1,6 @@
 out/
 tmp/
+.hermes/
 .worktrees/
 *.log
 .env
